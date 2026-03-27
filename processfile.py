@@ -1,8 +1,9 @@
 import os
-from utils.analyzefile import  analyze_images, paths_to_images
+from utils.analyzefile import  analyze_images, paths_to_images, askgemini
 from utils.wordoutput import text_to_word
 from utils.pdftopicture import PDFtoPicture
-from getprompt import get_main_prompt, get_support_prompt
+from getprompt import get_main_prompt, get_support_prompt, get_accuracy_prompt
+from getenv import get_other_model
 
 def processfile(payload):
     """
@@ -19,6 +20,8 @@ def processfile(payload):
 
     api_key = payload.get("api_key")
     model = payload.get("model")
+    accuracy_model = get_other_model()
+    accuracy_prompt = get_accuracy_prompt()
     selected_features = payload.get("selected_features")
     pdf_list = payload.get("pdf_list")
     image_list = payload.get("image_list")
@@ -31,6 +34,10 @@ def processfile(payload):
     
     print("📌開始進行轉換📌")
     print(f"🤖使用模型:{model}")
+    if payload.get("use_accuracy"):
+        print("🎯使用增加格式精準度模式")
+    else:
+        print("⚙️使用一般模式")
     for PDF in pdf_list:
         basename = os.path.splitext(os.path.basename(PDF))[0]
         print("--------------------------")
@@ -41,13 +48,25 @@ def processfile(payload):
         #Gemini_analyzing
         print(f"🟡分析中...")
         res = analyze_images(api_key, imageList, UNITE_PROMPT, model, basename+".pdf")
+        if payload.get("use_accuracy"):
+            print(f"🟡驗證中...")
+            res = askgemini(api_key,accuracy_prompt,res,accuracy_model)
         filename = basename + ".docx"
         #write_to_word
         print("🟢正在寫入Word...")
         text_to_word(res,output_folder+"/"+filename)
         print(f"✅成功寫入{filename}")
+
+
     if image_list:
         imageList = paths_to_images(image_list)
+        print("🔴目前檔案: 圖片檔")
+        print(f"🟠轉換中...")
+        print(f"🟡分析中...")
         res = analyze_images(api_key, imageList, UNITE_PROMPT, model, "images")
+        if payload.get("use_accuracy"):
+            print(f"🟡驗證中...")
+            res = askgemini(api_key,accuracy_prompt,res,accuracy_model)
+        print("🟢正在寫入Word...")
         text_to_word(res,output_folder+"/picture.docx")
     return

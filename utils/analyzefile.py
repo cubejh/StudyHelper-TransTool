@@ -59,3 +59,17 @@ def analyzefile(API_KEY, file_path, PROMPT,MODEL) :
         ]
     )
     return response.text
+
+def askgemini(API_KEY, PROMPT, Contain, MODEL) :
+    """
+
+    """
+    client = genai.Client(api_key=API_KEY)
+    FinalPROMPT = PROMPT+"\n以下是要處理的內容:\n"+Contain
+    response = client.models.generate_content(
+        model = MODEL,
+        contents=[
+            FinalPROMPT
+        ]
+    )
+    return response.text
