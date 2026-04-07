@@ -1,4 +1,5 @@
 import io
+import os
 import tempfile
 from pathlib import Path
 import shutil
@@ -6,9 +7,7 @@ from google import genai
 from PIL import Image
 
 def analyze_images(API_KEY, image_list, PROMPT, MODEL, fileName):
-    from google import genai
-    import os
-
+    
     client = genai.Client(api_key=API_KEY)
     uploaded_files = []
 

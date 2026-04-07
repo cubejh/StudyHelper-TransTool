@@ -1,41 +1,42 @@
+import re
 from docx import Document
 from docx.shared import Pt
 from docx.oxml.ns import qn
 
 OUTPUT_PATH = "testingFolder/output.docx"
 
+CHINESE_FONT = "標楷體"
+ENGLISH_FONT = "Times New Roman"
+ENGLISH_SIZE = Pt(12)
+NO_ITALIC_WORDS = {"sin", "cos", "tan", "log", "exp", "sqrt"}
+
 def contains_chinese(char):
-    """Check if a character is Chinese"""
     return '\u4e00' <= char <= '\u9fff'
 
 def text_to_word(text: str, output_path: str = OUTPUT_PATH):
-    """
-    Convert a string to a Word (.docx) file with mixed font handling.
-    Chinese characters use a specific font, English letters use another font and can be italic.
-
-    :param text: input string
-    :param output_path: output file path, e.g., "output.docx"
-    """
     doc = Document()
-    
-    # Split text by line to preserve line breaks
+
     for line in text.split("\n"):
         p = doc.add_paragraph()
-        for char in line:
-            run = p.add_run(char)
-            
-            if contains_chinese(char):
-                # Chinese font
-                run.font.name = "標楷體"
-                run._element.rPr.rFonts.set(qn("w:eastAsia"), "標楷體")
+        tokens = re.findall(r'\([A-Z]\)|\w+|[^\w\s]', line)  # split into words, symbols, or (A)
+
+        for token in tokens:
+            run = p.add_run(token)
+
+            if any(contains_chinese(c) for c in token):
+                run.font.name = CHINESE_FONT
+                run._element.rPr.rFonts.set(qn("w:eastAsia"), CHINESE_FONT)
+                run.font.italic = False
             else:
-                # English font
-                run.font.name = "Times New Roman"
-                run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-                if char.isalpha():
-                    run.italic = True
-            
-            run.font.size = Pt(12)
-    
+                run.font.name = ENGLISH_FONT
+                run._element.rPr.rFonts.set(qn("w:eastAsia"), ENGLISH_FONT)
+                run.font.italic = False
+
+                if re.fullmatch(r'\([A-Z]\)', token):
+                    run.font.italic = False
+                elif re.fullmatch(r'[A-Za-z]+', token) and token.lower() not in NO_ITALIC_WORDS:
+                    run.font.italic = True
+
+            run.font.size = ENGLISH_SIZE
+
     doc.save(output_path)
-    return
