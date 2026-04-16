@@ -5,7 +5,7 @@ from utils.pdftopicture import PDFtoPicture
 from getprompt import get_main_prompt, get_support_prompt, get_accuracy_prompt
 from getenv import get_other_model
 
-def processfile(payload):
+def processfile(payload, mode):
     """
     payload = {
         "api_key": api_key,
@@ -67,6 +67,7 @@ def processfile(payload):
         if payload.get("use_accuracy"):
             print(f"🟡驗證中...")
             res = askgemini(api_key,accuracy_prompt,res,accuracy_model)
-        print("🟢正在寫入Word...")
-        text_to_word(res,output_folder+"/picture.docx")
-    return
+        if mode==0 :
+            print("🟢正在寫入Word...")
+            text_to_word(res,output_folder+"/picture.docx")
+    return res

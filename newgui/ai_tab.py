@@ -13,18 +13,29 @@ class AITab(QWidget):
         super().__init__(parent)
 
         self.current_output_folder = ""
-
         main_layout = QVBoxLayout()
-
         top_layout = QHBoxLayout()
 
         # Left
         left_layout = QVBoxLayout()
         self.source_list = QListWidget()
+        
+        # --- 樣式設定：來源檔案清單 ---
+        self.source_list.setStyleSheet("""
+            QListWidget {
+                background-color: #2B2B2B; /* 深灰色背景 */
+                color: #DDDDDD;            /* 淺灰色文字 */
+                border: 1px solid #444444; /* 深色邊框 */
+                border-radius: 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #444444; /* 選取時的顏色 */
+                color: #FFFFFF;
+            }
+        """)
 
         btn_add = QPushButton("新增檔案")
         btn_remove = QPushButton("移除選取")
-
         btn_add.clicked.connect(self.add_files)
         btn_remove.clicked.connect(self.remove_selected)
 
@@ -38,19 +49,15 @@ class AITab(QWidget):
 
         # Right
         right_layout = QVBoxLayout()
-
         self.model_combo = QComboBox()
         self.model_combo.addItems(get_models())
-
         self.accuracy_checkbox = QCheckBox("提高格式精準度")
-
         self.feature_list = QListWidget()
         self.feature_list.setSelectionMode(QListWidget.MultiSelection)
         self.feature_list.addItems(get_prompt_titles())
 
         self.output_input = QLineEdit()
         self.output_input.textChanged.connect(self.update_output_folder)
-
         btn_output = QPushButton("選擇輸出資料夾")
         btn_output.clicked.connect(self.select_output_folder)
 
@@ -60,14 +67,11 @@ class AITab(QWidget):
         right_layout.addWidget(QLabel("模型"))
         right_layout.addWidget(self.model_combo)
         right_layout.addWidget(self.accuracy_checkbox)
-
         right_layout.addWidget(QLabel("功能"))
         right_layout.addWidget(self.feature_list)
-
         right_layout.addWidget(QLabel("輸出資料夾"))
         right_layout.addWidget(self.output_input)
         right_layout.addWidget(btn_output)
-
         right_layout.addWidget(QLabel("額外需求"))
         right_layout.addWidget(self.prompt_input)
 
@@ -79,6 +83,17 @@ class AITab(QWidget):
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setPlaceholderText("等待執行...")
+        
+        # --- 樣式設定：下方執行狀態 ---
+        self.log_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #242424; 
+                color: #A0FFA0;           
+                border: 1px solid #333333;
+                border-radius: 4px;
+                font-family: 'Consolas', 'Monaco', monospace;
+            }
+        """)
 
         log_layout.addWidget(QLabel("執行狀態"))
         log_layout.addWidget(self.log_text)
@@ -88,7 +103,6 @@ class AITab(QWidget):
 
         self.setLayout(main_layout)
 
-    # ===== FIX 1 =====
     def add_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, "選擇檔案")
 
@@ -111,7 +125,6 @@ class AITab(QWidget):
         for item in self.source_list.selectedItems():
             self.source_list.takeItem(self.source_list.row(item))
 
-    # ===== FIX 2 =====
     def select_output_folder(self):
         folder = QFileDialog.getExistingDirectory(
             self,
@@ -131,7 +144,6 @@ class AITab(QWidget):
             self.log_text.verticalScrollBar().maximum()
         )
 
-    # ===== FIX 3 =====
     def get_payload_data(self):
         files = [
             self.source_list.item(i).data(Qt.UserRole)

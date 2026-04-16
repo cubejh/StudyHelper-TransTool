@@ -9,8 +9,8 @@ from PySide6.QtGui import QFont
 from getenv import set_api_key
 from worker import Worker
 
-from ai_tab import AITab
-from format_tab import FormatTab
+from newgui.ai_tab import AITab
+from newgui.scai_tab import ScreenshotAITab
 
 
 class MainWindow(QWidget):
@@ -36,7 +36,7 @@ class MainWindow(QWidget):
         self.tabs = QTabWidget()
 
         self.ai_tab = AITab()
-        self.format_tab = FormatTab()
+        self.format_tab = ScreenshotAITab()
 
         self.tabs.addTab(self.ai_tab, "AI")
         self.tabs.addTab(self.format_tab, "Format")
@@ -52,42 +52,6 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         self.set_dark_theme()
 
-    def save_api(self):
-        key = self.api_input.text().strip()
-        set_api_key(key)
-        QMessageBox.information(self, "Saved", "API key saved")
-
-    def run_task(self):
-        api_key = self.api_input.text().strip()
-
-        if not api_key:
-            QMessageBox.warning(self, "Error", "Missing API Key")
-            return
-
-        current_tab = self.tabs.currentWidget()
-
-        # ===== AI Tab =====
-        if current_tab == self.ai_tab:
-            payload = self.ai_tab.get_payload_data()
-            payload["api_key"] = api_key
-
-        # ===== Format Tab =====
-        elif current_tab == self.format_tab:
-            payload = self.format_tab.get_payload_data()
-            payload["api_key"] = api_key
-
-        else:
-            return
-
-        self.run_button.setEnabled(False)
-
-        self.worker = Worker(payload)
-        self.worker.finished.connect(self.task_finished)
-        self.worker.start()
-
-    def task_finished(self):
-        QMessageBox.information(self, "Done", "Completed")
-        self.run_button.setEnabled(True)
 
     def set_dark_theme(self):
         self.setStyleSheet("""

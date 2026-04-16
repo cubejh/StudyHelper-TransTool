@@ -10,13 +10,13 @@ from gui_logger import EmittingStream
 import sys
 
 from newgui.ai_tab import AITab
-from newgui.format_tab import FormatTab
-
+from newgui.scai_tab import ScreenshotAITab
+from newgui.intro_tab import Intro_Tab
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("題目輔助工具")
+        self.setWindowTitle("轉換工具v4")
         self.resize(1400, 800)
 
         main_layout = QVBoxLayout()  
@@ -34,10 +34,12 @@ class MainWindow(QWidget):
         # ===== Tabs =====
         self.tabs = QTabWidget()
         self.ai_tab = AITab()
-        self.format_tab = FormatTab()
+        self.scai_tab = ScreenshotAITab()
+        self.intro_tab = Intro_Tab()
 
-        self.tabs.addTab(self.ai_tab, "AI解析")
-        self.tabs.addTab(self.format_tab, "格式修正")
+        self.tabs.addTab(self.ai_tab, "文件分析")
+        self.tabs.addTab(self.scai_tab, "快速分析")
+        self.tabs.addTab(self.intro_tab, "工具簡介")
 
         # ===== button =====
         btn_layout = QHBoxLayout()
@@ -70,42 +72,53 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "目前沒有 API Key")
             return
 
-        # stdout redirect
-        sys.stdout = EmittingStream(text_written=self.ai_tab.append_log)
-        sys.stderr = EmittingStream(text_written=self.ai_tab.append_log)
+        # Get active tab and its index
+        current_tab = self.tabs.currentWidget()
+        current_index = self.tabs.currentIndex()
+        if current_index == 2 :
+            return
+        # Redirect logs to the current tab if it supports append_log
+        # This fixes missing info for both AI Tab and Screenshot Tab
+        if hasattr(current_tab, "append_log"):
+            sys.stdout = EmittingStream(text_written=current_tab.append_log)
+            sys.stderr = EmittingStream(text_written=current_tab.append_log)
 
         self.run_btn.setEnabled(False)
 
-        # ===== AI TAB =====
-        if self.tabs.currentIndex() == 0:
-            payload = self.ai_tab.get_payload_data()
-            payload["api_key"] = api_key
-
-            self.worker = Worker(payload)
-
-            self.worker.finished_ok.connect(self.task_finished)
-            self.worker.error.connect(self.task_error) 
-
-            self.worker.start()
-
-        # ===== FORMAT TAB =====
-        elif self.tabs.currentIndex() == 1:
-            payload = self.format_tab.get_payload_data()
-            payload["api_key"] = api_key
-
+        # Check if tab supports data collection
+        if hasattr(current_tab, "get_payload_data"):
             try:
-                print("Format Payload:", payload)
-                QMessageBox.information(self, "Done", "Format completed")
-            except Exception as e:
-                self.task_error(str(e))
+                # Prepare data
+                payload = current_tab.get_payload_data()
+                payload["api_key"] = api_key
 
+                # Initialize and start Worker
+                self.worker = Worker(payload, current_index)
+                self.worker.finished_ok.connect(self.task_finished)
+                self.worker.error.connect(self.task_error) 
+                self.worker.start()
+                
+            except Exception as e:
+                # Restore UI on immediate failure
+                self.run_btn.setEnabled(True)
+                self.task_error(f"Failed to start task: {str(e)}")
+        else:
+            # If tab doesn't support get_payload_data
             self.run_btn.setEnabled(True)
     
-    def task_finished(self):
-        opf = self.worker.payload.get("output_folder")
+    def task_finished(self,result_text):
+        """Handle successful completion and display result"""
+        current_tab = self.tabs.currentWidget()
+        
+        # If the tab has a result display (like SCAI TAB), send the text there
+        if hasattr(current_tab, "display_result"):
+            current_tab.display_result(result_text)
+        else :
+            opf = self.worker.payload.get("output_folder")
+            self.open_folder(opf)
         QMessageBox.information(self, "Done", "Completed")
         self.run_btn.setEnabled(True)
-        self.open_folder(opf)
+
 
     def task_error(self, e):
         QMessageBox.critical(self, "Error", str(e))
