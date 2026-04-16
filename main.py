@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtGui import QFont
-from newgui import OCRTool
+from newgui.main_window import MainWindow
 
 if __name__ == "__main__":
     import sys
@@ -9,6 +9,6 @@ if __name__ == "__main__":
     font = QFont("Arial", 12)
     font.setBold(True)
     app.setFont(font)
-    window = OCRTool()
+    window = MainWindow()  
     window.show()
     sys.exit(app.exec())
